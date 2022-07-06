@@ -46,7 +46,7 @@ def hashkey(datas):
     hashkey = res.json()["HASH"]
     return hashkey
 
-def get_current_price(code="005930"):
+def get_current_price(code="028300"):
     """현재가 조회"""
     PATH = "uapi/domestic-stock/v1/quotations/inquire-price"
     URL = f"{URL_BASE}/{PATH}"
@@ -62,7 +62,7 @@ def get_current_price(code="005930"):
     res = requests.get(URL, headers=headers, params=params)
     return int(res.json()['output']['stck_prpr'])
 
-def get_target_price(code="005930"):
+def get_target_price(code="028300"):
     """변동성 돌파 전략으로 매수 목표가 조회"""
     PATH = "uapi/domestic-stock/v1/quotations/inquire-daily-price"
     URL = f"{URL_BASE}/{PATH}"
@@ -152,7 +152,7 @@ def get_balance():
     send_message(f"주문 가능 현금 잔고: {cash}원")
     return int(cash)
 
-def buy(code="005930", qty="1"):
+def buy(code="028300", qty="1"):
     """주식 시장가 매수"""  
     PATH = "uapi/domestic-stock/v1/trading/order-cash"
     URL = f"{URL_BASE}/{PATH}"
@@ -180,7 +180,7 @@ def buy(code="005930", qty="1"):
         send_message(f"[매수 실패]{str(res.json())}")
         return False
 
-def sell(code="005930", qty="1"):
+def sell(code="028300", qty="1"):
     """주식 시장가 매도"""
     PATH = "uapi/domestic-stock/v1/trading/order-cash"
     URL = f"{URL_BASE}/{PATH}"
@@ -212,14 +212,14 @@ def sell(code="005930", qty="1"):
 try:
     ACCESS_TOKEN = get_access_token()
 
-    symbol_list = ["005930","035720","000660","069500"] # 매수 희망 종목 리스트
+    symbol_list = ["028300"] # 매수 희망 종목 리스트
     bought_list = [] # 매수 완료된 종목 리스트
     total_cash = get_balance() # 보유 현금 조회
     stock_dict = get_stock_balance() # 보유 주식 조회
     for sym in stock_dict.keys():
         bought_list.append(sym)
-    target_buy_count = 3 # 매수할 종목 수
-    buy_percent = 0.33 # 종목당 매수 금액 비율
+    target_buy_count = 1 # 매수할 종목 수
+    buy_percent = 1 # 종목당 매수 금액 비율
     buy_amount = total_cash * buy_percent  # 종목별 주문 금액 계산
     soldout = False
 
