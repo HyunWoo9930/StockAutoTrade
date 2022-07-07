@@ -14,6 +14,7 @@ ACNT_PRDT_CD = _cfg['ACNT_PRDT_CD']
 DISCORD_WEBHOOK_URL = _cfg['DISCORD_WEBHOOK_URL']
 URL_BASE = _cfg['URL_BASE']
 
+
 def send_message(msg):
     """디스코드 메세지 전송"""
     now = datetime.datetime.now()
@@ -21,80 +22,109 @@ def send_message(msg):
     requests.post(DISCORD_WEBHOOK_URL, data=message)
     print(message)
 
+
 def get_access_token():
     """토큰 발급"""
-    headers = {"content-type":"application/json"}
-    body = {"grant_type":"client_credentials",
-    "appkey":APP_KEY, 
-    "appsecret":APP_SECRET}
+    headers = {"content-type": "application/json"}
+    body = {"grant_type": "client_credentials",
+            "appkey": APP_KEY,
+            "appsecret": APP_SECRET}
     PATH = "oauth2/tokenP"
     URL = f"{URL_BASE}/{PATH}"
     res = requests.post(URL, headers=headers, data=json.dumps(body))
     ACCESS_TOKEN = res.json()["access_token"]
     return ACCESS_TOKEN
-    
+
+
 def hashkey(datas):
     """암호화"""
     PATH = "uapi/hashkey"
     URL = f"{URL_BASE}/{PATH}"
     headers = {
-    'content-Type' : 'application/json',
-    'appKey' : APP_KEY,
-    'appSecret' : APP_SECRET,
+        'content-Type': 'application/json',
+        'appKey': APP_KEY,
+        'appSecret': APP_SECRET,
     }
     res = requests.post(URL, headers=headers, data=json.dumps(datas))
     hashkey = res.json()["HASH"]
     return hashkey
 
+
 def get_current_price(code="028300"):
     """현재가 조회"""
     PATH = "uapi/domestic-stock/v1/quotations/inquire-price"
     URL = f"{URL_BASE}/{PATH}"
-    headers = {"Content-Type":"application/json", 
-            "authorization": f"Bearer {ACCESS_TOKEN}",
-            "appKey":APP_KEY,
-            "appSecret":APP_SECRET,
-            "tr_id":"FHKST01010100"}
+    headers = {"Content-Type": "application/json",
+               "authorization": f"Bearer {ACCESS_TOKEN}",
+               "appKey": APP_KEY,
+               "appSecret": APP_SECRET,
+               "tr_id": "FHKST01010100"}
     params = {
-    "fid_cond_mrkt_div_code":"J",
-    "fid_input_iscd":code,
+        "fid_cond_mrkt_div_code": "J",
+        "fid_input_iscd": code,
     }
     res = requests.get(URL, headers=headers, params=params)
     return int(res.json()['output']['stck_prpr'])
+
+
+def get_current_price_up(code="002002"):
+    """현재가 조회 및 출력"""
+    PATH = "uapi/domestic-stock/v1/quotations/inquire-price"
+    URL = f"{URL_BASE}/{PATH}"
+    headers = {
+        "Content-Type": "application/json",
+        "authorization": f"Bearer {ACCESS_TOKEN}",
+        "appKey": APP_KEY,
+        "appSecret": APP_SECRET,
+        "tr_id": "FHKST01010100"
+    }
+    params = {
+        "fid_cond_mrkt_div_code": "J",
+        "fid_input_iscd": code,
+    }
+    res = requests.get(URL, headers=headers, params=params)
+    val = res.json()['output']['prdy_vrss_sign']
+    if val == 1: send_message(code + "는 상한가입니다.")
+    if val == 2: send_message(code + "는 전일 대비 상승 입니다.")
+    if val == 3: send_message(code + "는 전일 대비 보합 입니다.")
+    if val == 4: send_message(code + "는 하한가 입니다.")
+    if val == 5: send_message(code + "는 전일 대비 하락 입니다.")
+
 
 def get_target_price(code="028300"):
     """변동성 돌파 전략으로 매수 목표가 조회"""
     PATH = "uapi/domestic-stock/v1/quotations/inquire-daily-price"
     URL = f"{URL_BASE}/{PATH}"
-    headers = {"Content-Type":"application/json", 
-        "authorization": f"Bearer {ACCESS_TOKEN}",
-        "appKey":APP_KEY,
-        "appSecret":APP_SECRET,
-        "tr_id":"FHKST01010400"}
+    headers = {"Content-Type": "application/json",
+               "authorization": f"Bearer {ACCESS_TOKEN}",
+               "appKey": APP_KEY,
+               "appSecret": APP_SECRET,
+               "tr_id": "FHKST01010400"}
     params = {
-    "fid_cond_mrkt_div_code":"J",
-    "fid_input_iscd":code,
-    "fid_org_adj_prc":"1",
-    "fid_period_div_code":"D"
+        "fid_cond_mrkt_div_code": "J",
+        "fid_input_iscd": code,
+        "fid_org_adj_prc": "1",
+        "fid_period_div_code": "D"
     }
     res = requests.get(URL, headers=headers, params=params)
-    stck_oprc = int(res.json()['output'][0]['stck_oprc']) #오늘 시가
-    stck_hgpr = int(res.json()['output'][1]['stck_hgpr']) #전일 고가
-    stck_lwpr = int(res.json()['output'][1]['stck_lwpr']) #전일 저가
-    target_price = stck_oprc + (stck_hgpr - stck_lwpr) * 0.5
+    stck_oprc = int(res.json()['output'][0]['stck_oprc'])  # 오늘 시가
+    stck_hgpr = int(res.json()['output'][1]['stck_hgpr'])  # 전일 고가
+    stck_lwpr = int(res.json()['output'][1]['stck_lwpr'])  # 전일 저가
+    target_price = stck_oprc + (stck_hgpr - stck_lwpr) * 0.6
     return target_price
+
 
 def get_stock_balance():
     """주식 잔고조회"""
     PATH = "uapi/domestic-stock/v1/trading/inquire-balance"
     URL = f"{URL_BASE}/{PATH}"
-    headers = {"Content-Type":"application/json", 
-        "authorization":f"Bearer {ACCESS_TOKEN}",
-        "appKey":APP_KEY,
-        "appSecret":APP_SECRET,
-        "tr_id":"TTTC8434R",
-        "custtype":"P",
-    }
+    headers = {"Content-Type": "application/json",
+               "authorization": f"Bearer {ACCESS_TOKEN}",
+               "appKey": APP_KEY,
+               "appSecret": APP_SECRET,
+               "tr_id": "TTTC8434R",
+               "custtype": "P",
+               }
     params = {
         "CANO": CANO,
         "ACNT_PRDT_CD": ACNT_PRDT_CD,
@@ -118,26 +148,40 @@ def get_stock_balance():
             stock_dict[stock['pdno']] = stock['hldg_qty']
             send_message(f"{stock['prdt_name']}({stock['pdno']}): {stock['hldg_qty']}주")
             time.sleep(0.1)
+            send_message(f"매입 평균 가격 : {stock['pchs_avg_pric']}원")
+            time.sleep(0.1)
+            send_message(f"현재 가격 : {stock['prpr']}원")
+            time.sleep(0.1)
+            send_message(f"현재 {(stock['pchs_avg_pric'] - stock['prpr']) * stock['hldg_qty']} 이익 / 손해를 보았습니다.")
+            time.sleep(0.1)
+            send_message(f"=======================================")
     send_message(f"주식 평가 금액: {evaluation[0]['scts_evlu_amt']}원")
     time.sleep(0.1)
     send_message(f"평가 손익 합계: {evaluation[0]['evlu_pfls_smtl_amt']}원")
     time.sleep(0.1)
+    send_message(f"예수금 총액 : {evaluation[0]['dnca_tot_amt']}원")
+    time.sleep(0.1)
+    send_message(f"자산 증감액 : {evaluation[0]['asst_icdc_amt']}원")
+    time.sleep(0.1)
+    send_message(f"자산 증감 수익율: {evaluation[0]['asst_icdc_erng_rt']} % ")
+    time.sleep(0.1)
     send_message(f"총 평가 금액: {evaluation[0]['tot_evlu_amt']}원")
     time.sleep(0.1)
-    send_message(f"=================")
+    send_message(f"=======================")
     return stock_dict
+
 
 def get_balance():
     """현금 잔고조회"""
     PATH = "uapi/domestic-stock/v1/trading/inquire-psbl-order"
     URL = f"{URL_BASE}/{PATH}"
-    headers = {"Content-Type":"application/json", 
-        "authorization":f"Bearer {ACCESS_TOKEN}",
-        "appKey":APP_KEY,
-        "appSecret":APP_SECRET,
-        "tr_id":"TTTC8908R",
-        "custtype":"P",
-    }
+    headers = {"Content-Type": "application/json",
+               "authorization": f"Bearer {ACCESS_TOKEN}",
+               "appKey": APP_KEY,
+               "appSecret": APP_SECRET,
+               "tr_id": "TTTC8908R",
+               "custtype": "P",
+               }
     params = {
         "CANO": CANO,
         "ACNT_PRDT_CD": ACNT_PRDT_CD,
@@ -152,8 +196,9 @@ def get_balance():
     send_message(f"주문 가능 현금 잔고: {cash}원")
     return int(cash)
 
+
 def buy(code="028300", qty="1"):
-    """주식 시장가 매수"""  
+    """주식 시장가 매수"""
     PATH = "uapi/domestic-stock/v1/trading/order-cash"
     URL = f"{URL_BASE}/{PATH}"
     data = {
@@ -164,14 +209,14 @@ def buy(code="028300", qty="1"):
         "ORD_QTY": str(int(qty)),
         "ORD_UNPR": "0",
     }
-    headers = {"Content-Type":"application/json", 
-        "authorization":f"Bearer {ACCESS_TOKEN}",
-        "appKey":APP_KEY,
-        "appSecret":APP_SECRET,
-        "tr_id":"TTTC0802U",
-        "custtype":"P",
-        "hashkey" : hashkey(data)
-    }
+    headers = {"Content-Type": "application/json",
+               "authorization": f"Bearer {ACCESS_TOKEN}",
+               "appKey": APP_KEY,
+               "appSecret": APP_SECRET,
+               "tr_id": "TTTC0802U",
+               "custtype": "P",
+               "hashkey": hashkey(data)
+               }
     res = requests.post(URL, headers=headers, data=json.dumps(data))
     if res.json()['rt_cd'] == '0':
         send_message(f"[매수 성공]{str(res.json())}")
@@ -179,6 +224,7 @@ def buy(code="028300", qty="1"):
     else:
         send_message(f"[매수 실패]{str(res.json())}")
         return False
+
 
 def sell(code="028300", qty="1"):
     """주식 시장가 매도"""
@@ -192,14 +238,14 @@ def sell(code="028300", qty="1"):
         "ORD_QTY": qty,
         "ORD_UNPR": "0",
     }
-    headers = {"Content-Type":"application/json", 
-        "authorization":f"Bearer {ACCESS_TOKEN}",
-        "appKey":APP_KEY,
-        "appSecret":APP_SECRET,
-        "tr_id":"TTTC0801U",
-        "custtype":"P",
-        "hashkey" : hashkey(data)
-    }
+    headers = {"Content-Type": "application/json",
+               "authorization": f"Bearer {ACCESS_TOKEN}",
+               "appKey": APP_KEY,
+               "appSecret": APP_SECRET,
+               "tr_id": "TTTC0801U",
+               "custtype": "P",
+               "hashkey": hashkey(data)
+               }
     res = requests.post(URL, headers=headers, data=json.dumps(data))
     if res.json()['rt_cd'] == '0':
         send_message(f"[매도 성공]{str(res.json())}")
@@ -208,18 +254,19 @@ def sell(code="028300", qty="1"):
         send_message(f"[매도 실패]{str(res.json())}")
         return False
 
+
 # 자동매매 시작
 try:
     ACCESS_TOKEN = get_access_token()
 
-    symbol_list = ["028300", "001250", "092300", "032800"] # 매수 희망 종목 리스트
-    bought_list = [] # 매수 완료된 종목 리스트
-    total_cash = get_balance() # 보유 현금 조회
-    stock_dict = get_stock_balance() # 보유 주식 조회
+    symbol_list = ["028300", "003580", "047920", "067630", "115450", "343090"]  # 매수 희망 종목 리스트
+    bought_list = []  # 매수 완료된 종목 리스트
+    total_cash = get_balance()  # 보유 현금 조회
+    stock_dict = get_stock_balance()  # 보유 주식 조회
     for sym in stock_dict.keys():
         bought_list.append(sym)
-    target_buy_count = 3 # 매수할 종목 수
-    buy_percent = 0.33 # 종목당 매수 금액 비율
+    target_buy_count = 3  # 매수할 종목 수
+    buy_percent = 0.33  # 종목당 매수 금액 비율
     buy_amount = total_cash * buy_percent  # 종목별 주문 금액 계산
     soldout = False
 
@@ -229,24 +276,28 @@ try:
         t_9 = t_now.replace(hour=9, minute=0, second=0, microsecond=0)
         t_start = t_now.replace(hour=9, minute=5, second=0, microsecond=0)
         t_sell = t_now.replace(hour=15, minute=15, second=0, microsecond=0)
-        t_exit = t_now.replace(hour=15, minute=20, second=0,microsecond=0)
+        t_exit = t_now.replace(hour=15, minute=20, second=0, microsecond=0)
         today = datetime.datetime.today().weekday()
         if today == 5 or today == 6:  # 토요일이나 일요일이면 자동 종료
             send_message("주말이므로 프로그램을 종료합니다.")
             break
-        if t_9 < t_now < t_start and soldout == False: # 잔여 수량 매도
+        if t_9 < t_now < t_start and soldout == False:  # 잔여 수량 매도
+            for sym in symbol_list:
+                send_message(get_current_price_up(sym))
             for sym, qty in stock_dict.items():
                 sell(sym, qty)
             soldout == True
             bought_list = []
             stock_dict = get_stock_balance()
-        if t_start < t_now < t_sell :  # AM 09:05 ~ PM 03:15 : 매수
+        if t_start < t_now < t_sell:  # AM 09:05 ~ PM 03:15 : 매수
             for sym in symbol_list:
                 if len(bought_list) < target_buy_count:
                     if sym in bought_list:
                         continue
                     target_price = get_target_price(sym)
                     current_price = get_current_price(sym)
+                    if t_now.minute % 10 == 0 and t_now.second <= 6:
+                        send_message(sym + ":" + str(current_price) + "원")
                     if target_price < current_price:
                         buy_qty = 0  # 매수할 수량 초기화
                         buy_qty = int(buy_amount // current_price)
@@ -271,7 +322,7 @@ try:
                 bought_list = []
                 time.sleep(1)
         if t_exit < t_now:  # PM 03:20 ~ :프로그램 종료
-            send_message("프로그램을 종료합니다.")
+            send_message("장이 끝났으므로 프로그램을 종료합니다.")
             break
 except Exception as e:
     send_message(f"[오류 발생]{e}")
