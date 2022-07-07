@@ -212,14 +212,14 @@ def sell(code="028300", qty="1"):
 try:
     ACCESS_TOKEN = get_access_token()
 
-    symbol_list = ["028300"] # 매수 희망 종목 리스트
+    symbol_list = ["028300", "001250", "092300", "032800"] # 매수 희망 종목 리스트
     bought_list = [] # 매수 완료된 종목 리스트
     total_cash = get_balance() # 보유 현금 조회
     stock_dict = get_stock_balance() # 보유 주식 조회
     for sym in stock_dict.keys():
         bought_list.append(sym)
-    target_buy_count = 1 # 매수할 종목 수
-    buy_percent = 1 # 종목당 매수 금액 비율
+    target_buy_count = 3 # 매수할 종목 수
+    buy_percent = 0.33 # 종목당 매수 금액 비율
     buy_amount = total_cash * buy_percent  # 종목별 주문 금액 계산
     soldout = False
 
@@ -259,7 +259,7 @@ try:
                                 get_stock_balance()
                     time.sleep(1)
             time.sleep(1)
-            if t_now.minute == 30 and t_now.second <= 5: 
+            if t_now.minute == 30 and t_now.second <= 5 or t_now.minute == 00 and t_now.second <= 5:
                 get_stock_balance()
                 time.sleep(5)
         if t_sell < t_now < t_exit:  # PM 03:15 ~ PM 03:20 : 일괄 매도
