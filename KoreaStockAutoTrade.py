@@ -114,6 +114,72 @@ def get_target_price(code="028300"):
     return target_price
 
 
+def get_stock_code():
+    """현재 보유 중인 주식 코드 보기"""
+    PATH = "uapi/domestic-stock/v1/trading/inquire-balance"
+    URL = f"{URL_BASE}/{PATH}"
+    headers = {"Content-Type": "application/json",
+               "authorization": f"Bearer {ACCESS_TOKEN}",
+               "appKey": APP_KEY,
+               "appSecret": APP_SECRET,
+               "tr_id": "TTTC8434R",
+               "custtype": "P",
+               }
+    params = {
+        "CANO": CANO,
+        "ACNT_PRDT_CD": ACNT_PRDT_CD,
+        "AFHR_FLPR_YN": "N",
+        "OFL_YN": "",
+        "INQR_DVSN": "02",
+        "UNPR_DVSN": "01",
+        "FUND_STTL_ICLD_YN": "N",
+        "FNCG_AMT_AUTO_RDPT_YN": "N",
+        "PRCS_DVSN": "01",
+        "CTX_AREA_FK100": "",
+        "CTX_AREA_NK100": ""
+    }
+    res = requests.get(URL, headers=headers, params=params)
+    stock_list = res.json()['output1']
+    evaluation = res.json()['output2']
+    stock_dict = []
+    for stock in stock_list:
+        stock_dict.append(stock['pdno'])
+    return stock_dict
+
+
+def sell_if_loose(code="022002"):
+    """현재 보유중인 주식의 평단가가 현재 가격보다 떨어졌을때 팔기"""
+    PATH = "uapi/domestic-stock/v1/trading/inquire-balance"
+    URL = f"{URL_BASE}/{PATH}"
+    headers = {"Content-Type": "application/json",
+               "authorization": f"Bearer {ACCESS_TOKEN}",
+               "appKey": APP_KEY,
+               "appSecret": APP_SECRET,
+               "tr_id": "TTTC8434R",
+               "custtype": "P",
+               }
+    params = {
+        "CANO": CANO,
+        "ACNT_PRDT_CD": ACNT_PRDT_CD,
+        "AFHR_FLPR_YN": "N",
+        "OFL_YN": "",
+        "INQR_DVSN": "02",
+        "UNPR_DVSN": "01",
+        "FUND_STTL_ICLD_YN": "N",
+        "FNCG_AMT_AUTO_RDPT_YN": "N",
+        "PRCS_DVSN": "01",
+        "CTX_AREA_FK100": "",
+        "CTX_AREA_NK100": ""
+    }
+    res = requests.get(URL, headers=headers, params=params)
+    stock_list = res.json()['output1']
+    for stock in stock_list:
+        if stock['pdno'] == code:
+            stock_val = stock['pchs_avg_pric']
+            if float(stock['prpr']) < float(stock_val) * 0.8:
+                sell(code, stock['hldg_qty'])
+
+
 def get_stock_balance():
     """주식 잔고조회"""
     PATH = "uapi/domestic-stock/v1/trading/inquire-balance"
@@ -152,7 +218,9 @@ def get_stock_balance():
             time.sleep(0.1)
             send_message(f"현재 가격 : {stock['prpr']}원")
             time.sleep(0.1)
-            send_message(f"현재 {(stock['pchs_avg_pric'] - stock['prpr']) * stock['hldg_qty']} 이익 / 손해를 보았습니다.")
+            send_message(f"평가 손익 금액 : {stock['evlu_pfls_amt']} % ")
+            time.sleep(0.1)
+            send_message(f"평가 손익율: {stock['evlu_pfls_rt']} % ")
             time.sleep(0.1)
             send_message(f"=======================================")
     send_message(f"주식 평가 금액: {evaluation[0]['scts_evlu_amt']}원")
@@ -162,8 +230,6 @@ def get_stock_balance():
     send_message(f"예수금 총액 : {evaluation[0]['dnca_tot_amt']}원")
     time.sleep(0.1)
     send_message(f"자산 증감액 : {evaluation[0]['asst_icdc_amt']}원")
-    time.sleep(0.1)
-    send_message(f"자산 증감 수익율: {evaluation[0]['asst_icdc_erng_rt']} % ")
     time.sleep(0.1)
     send_message(f"총 평가 금액: {evaluation[0]['tot_evlu_amt']}원")
     time.sleep(0.1)
@@ -310,6 +376,8 @@ try:
                                 get_stock_balance()
                     time.sleep(1)
             time.sleep(1)
+            # for val in get_stock_code():
+                # sell_if_loose(val)
             if t_now.minute == 30 and t_now.second <= 5 or t_now.minute == 00 and t_now.second <= 5:
                 get_stock_balance()
                 time.sleep(5)
