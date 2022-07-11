@@ -177,6 +177,7 @@ def sell_if_loose(code="022002"):
         if stock['pdno'] == code:
             stock_val = stock['pchs_avg_pric']
             if float(stock['prpr']) < float(stock_val) * 0.8:
+                send_message(f"가격이 떨어졌으므로, {code} 를 매도합니다.")
                 sell(code, stock['hldg_qty'])
 
 
@@ -218,7 +219,7 @@ def get_stock_balance():
             time.sleep(0.1)
             send_message(f"현재 가격 : {stock['prpr']}원")
             time.sleep(0.1)
-            send_message(f"평가 손익 금액 : {stock['evlu_pfls_amt']} % ")
+            send_message(f"평가 손익 금액 : {stock['evlu_pfls_amt']} 원 ")
             time.sleep(0.1)
             send_message(f"평가 손익율: {stock['evlu_pfls_rt']} % ")
             time.sleep(0.1)
@@ -325,7 +326,7 @@ def sell(code="028300", qty="1"):
 try:
     ACCESS_TOKEN = get_access_token()
 
-    symbol_list = ["028300", "003580", "047920", "067630", "115450", "343090"]  # 매수 희망 종목 리스트
+    symbol_list = ["028300", "003580", "047920", "067630", "115450", "343090", "001250"]  # 매수 희망 종목 리스트
     bought_list = []  # 매수 완료된 종목 리스트
     total_cash = get_balance()  # 보유 현금 조회
     stock_dict = get_stock_balance()  # 보유 주식 조회
@@ -348,8 +349,6 @@ try:
             send_message("주말이므로 프로그램을 종료합니다.")
             break
         if t_9 < t_now < t_start and soldout == False:  # 잔여 수량 매도
-            for sym in symbol_list:
-                send_message(get_current_price_up(sym))
             for sym, qty in stock_dict.items():
                 sell(sym, qty)
             soldout == True
@@ -376,8 +375,8 @@ try:
                                 get_stock_balance()
                     time.sleep(1)
             time.sleep(1)
-            # for val in get_stock_code():
-                # sell_if_loose(val)
+            for val in get_stock_code():
+                sell_if_loose(val)
             if t_now.minute == 30 and t_now.second <= 5 or t_now.minute == 00 and t_now.second <= 5:
                 get_stock_balance()
                 time.sleep(5)
