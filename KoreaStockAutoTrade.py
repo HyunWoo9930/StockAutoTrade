@@ -140,14 +140,13 @@ def get_stock_code():
     }
     res = requests.get(URL, headers=headers, params=params)
     stock_list = res.json()['output1']
-    evaluation = res.json()['output2']
     stock_dict = []
     for stock in stock_list:
         stock_dict.append(stock['pdno'])
     return stock_dict
 
 
-def sell_if_loose(code="022002"):
+def sell_if_loose():
     """현재 보유중인 주식의 평단가가 현재 가격보다 떨어졌을때 팔기"""
     PATH = "uapi/domestic-stock/v1/trading/inquire-balance"
     URL = f"{URL_BASE}/{PATH}"
@@ -174,11 +173,9 @@ def sell_if_loose(code="022002"):
     res = requests.get(URL, headers=headers, params=params)
     stock_list = res.json()['output1']
     for stock in stock_list:
-        if stock['pdno'] == code:
-            stock_val = stock['pchs_avg_pric']
-            if float(stock['prpr']) < float(stock_val) * 0.8:
-                send_message(f"가격이 떨어졌으므로, {code} 를 매도합니다.")
-                sell(code, stock['hldg_qty'])
+        if float(stock['evlu_pfls_rt']) <= 0.5:
+            send_message(f"가격이 떨어졌으므로, {stock['prdt_name']}({stock['pdno']}) 을/를 매도 합니다.")
+            sell(stock['pdno'],stock['hldg_qty'])
 
 
 def get_stock_balance():
@@ -326,14 +323,14 @@ def sell(code="028300", qty="1"):
 try:
     ACCESS_TOKEN = get_access_token()
 
-    symbol_list = ["028300", "003580", "047920", "067630", "115450", "343090", "001250"]  # 매수 희망 종목 리스트
+    symbol_list = ["028300", "138070", "322190", "183410", "227420", "092590", "049830", "254160"]  # 매수 희망 종목 리스트
     bought_list = []  # 매수 완료된 종목 리스트
     total_cash = get_balance()  # 보유 현금 조회
     stock_dict = get_stock_balance()  # 보유 주식 조회
     for sym in stock_dict.keys():
         bought_list.append(sym)
-    target_buy_count = 3  # 매수할 종목 수
-    buy_percent = 0.33  # 종목당 매수 금액 비율
+    target_buy_count = 5  # 매수할 종목 수
+    buy_percent = 0.2  # 종목당 매수 금액 비율
     buy_amount = total_cash * buy_percent  # 종목별 주문 금액 계산
     soldout = False
 
@@ -375,19 +372,18 @@ try:
                                 get_stock_balance()
                     time.sleep(1)
             time.sleep(1)
-            for val in get_stock_code():
-                sell_if_loose(val)
+            # sell_if_loose()
             if t_now.minute == 30 and t_now.second <= 5 or t_now.minute == 00 and t_now.second <= 5:
                 get_stock_balance()
                 time.sleep(5)
-        if t_sell < t_now < t_exit:  # PM 03:15 ~ PM 03:20 : 일괄 매도
-            if soldout == False:
-                stock_dict = get_stock_balance()
-                for sym, qty in stock_dict.items():
-                    sell(sym, qty)
-                soldout = True
-                bought_list = []
-                time.sleep(1)
+        # if t_sell < t_now < t_exit:  # PM 03:15 ~ PM 03:20 : 일괄 매도
+        #     if soldout == False:
+        #         stock_dict = get_stock_balance()
+        #         for sym, qty in stock_dict.items():
+        #             sell(sym, qty)
+        #         soldout = True
+        #         bought_list = []
+        #         time.sleep(1)
         if t_exit < t_now:  # PM 03:20 ~ :프로그램 종료
             send_message("장이 끝났으므로 프로그램을 종료합니다.")
             break
